@@ -1,0 +1,215 @@
+{
+    "users": [
+        {
+            "id": "u1",
+            "employeeCode": "E0001",
+            "title": "Mr.",
+            "firstName": "Ronald",
+            "lastName": "McDonald",
+            "name": "Ronald McDonald",
+            "email": "ronald@mcdonalds.com",
+            "role": "Admin",
+            "pointsBalance": 5000,
+            "quotaRemaining": 10000,
+            "position": "Chief Happiness Officer",
+            "businessUnit": "HQ",
+            "department": "Executive",
+            "branch": "Main Office",
+            "avatar": "https://ui-avatars.com/api/?name=Ronald+McDonald&background=random"
+        },
+        {
+            "id": "u2",
+            "employeeCode": "E0002",
+            "title": "Ms.",
+            "firstName": "Birdie",
+            "lastName": "Early",
+            "name": "Birdie Early",
+            "email": "birdie@mcdonalds.com",
+            "role": "Staff",
+            "pointsBalance": 120,
+            "quotaRemaining": 50,
+            "position": "Early Bird Specialist",
+            "businessUnit": "Operations",
+            "department": "Morning Shift",
+            "branch": "Times Square",
+            "avatar": "https://ui-avatars.com/api/?name=Birdie+Early&background=random"
+        },
+        {
+            "id": "u3",
+            "employeeCode": "E0003",
+            "title": "Mr.",
+            "firstName": "Grimace",
+            "lastName": "Shake",
+            "name": "Grimace Shake",
+            "email": "grimace@mcdonalds.com",
+            "role": "Executive",
+            "pointsBalance": 3000,
+            "quotaRemaining": 5000,
+            "position": "Taste Tester",
+            "businessUnit": "Product",
+            "department": "R&D",
+            "branch": "Lab 1",
+            "avatar": "https://ui-avatars.com/api/?name=Grimace+Shake&background=random"
+        },
+        {
+            "id": "u4",
+            "employeeCode": "E0004",
+            "title": "Mr.",
+            "firstName": "Hamburglar",
+            "lastName": "Thief",
+            "name": "Hamburglar",
+            "email": "robble@mcdonalds.com",
+            "role": "Staff",
+            "pointsBalance": 5,
+            "quotaRemaining": 0,
+            "position": "Security Tester",
+            "businessUnit": "Security",
+            "department": "Loss Prevention",
+            "branch": "Roaming",
+            "avatar": "https://ui-avatars.com/api/?name=Hamburglar&background=random"
+        },
+        {
+            "id": "u5",
+            "employeeCode": "E0005",
+            "title": "Mr.",
+            "firstName": "Fry",
+            "lastName": "Kids",
+            "name": "Fry Guy",
+            "email": "fry@mcdonalds.com",
+            "role": "Staff",
+            "pointsBalance": 50,
+            "quotaRemaining": 500,
+            "position": "Line Cook",
+            "businessUnit": "Operations",
+            "department": "Kitchen",
+            "branch": "Times Square",
+            "avatar": "https://ui-avatars.com/api/?name=Fry+Guy&background=random"
+        },
+        {
+            "id": "u6",
+            "employeeCode": "E0006",
+            "title": "Ms.",
+            "firstName": "Mayor",
+            "lastName": "McCheese",
+            "name": "Mayor McCheese",
+            "email": "mayor@mcdonalds.com",
+            "role": "Middle Management",
+            "pointsBalance": 1000,
+            "quotaRemaining": 2000,
+            "position": "Regional Manager",
+            "businessUnit": "Management",
+            "department": "Region 1",
+            "branch": "City Hall",
+            "avatar": "https://ui-avatars.com/api/?name=Mayor+McCheese&background=random"
+        }
+    ],
+    "rewards": [
+        {
+            "id": "lvl-1",
+            "name": "Welcome Badge",
+            "levelTitle": "Starter",
+            "minPoint": 0,
+            "costPoints": 0,
+            "stock": 9999,
+            "imageUrl": "https://ui-avatars.com/api/?name=St&background=e2e8f0&color=64748b",
+            "description": "Begin your journey."
+        },
+        {
+            "id": "r1",
+            "name": "McFlurry Coupon",
+            "levelTitle": "Bronze",
+            "minPoint": 150,
+            "costPoints": 150,
+            "stock": 50,
+            "imageUrl": "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&q=80&w=800",
+            "description": "One free Oreo McFlurry."
+        },
+        {
+            "id": "lvl-3",
+            "name": "Movie Ticket",
+            "levelTitle": "Silver",
+            "minPoint": 300,
+            "costPoints": 300,
+            "stock": 30,
+            "imageUrl": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=800",
+            "description": "Enjoy a movie on us."
+        },
+        {
+            "id": "r2",
+            "name": "Big Mac Meal",
+            "levelTitle": "Gold",
+            "minPoint": 500,
+            "costPoints": 500,
+            "stock": 20,
+            "imageUrl": "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&q=80&w=800",
+            "description": "The classic Big Mac meal with fries and drink."
+        },
+        {
+            "id": "r3",
+            "name": "Limited Edition Pin",
+            "levelTitle": "Platinum",
+            "minPoint": 800,
+            "costPoints": 800,
+            "stock": 5,
+            "imageUrl": "https://images.unsplash.com/photo-1615655406736-b37c4fabf923?auto=format&fit=crop&q=80&w=800",
+            "description": "Golden Arches collector pin."
+        }
+    ],
+    "quotas": [
+        {
+            "role": "Admin",
+            "monthlyQuota": 10000
+        },
+        {
+            "role": "Executive",
+            "monthlyQuota": 5000
+        },
+        {
+            "role": "Middle Management",
+            "monthlyQuota": 2000
+        },
+        {
+            "role": "Staff",
+            "monthlyQuota": 500
+        }
+    ],
+    "news": [
+        {
+            "id": "n1",
+            "title": "Welcome to the new Rewards Program!",
+            "summary": "We are excited to launch our new employee rewards system.",
+            "content": "Use your points to redeem great rewards. Recognized peers for their hard work!",
+            "imageUrl": "https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&q=80&w=1000",
+            "status": "Published",
+            "publishDate": "2025-12-01T09:00:00Z"
+        },
+        {
+            "id": "n2",
+            "title": "Q4 Goals Achieved",
+            "summary": "Great job everyone on hitting the Q4 targets.",
+            "content": "Thanks to your hard work, we exceeded our sales goals by 15%. Celebration event details to follow.",
+            "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&q=80&w=1000",
+            "status": "Draft",
+            "publishDate": ""
+        }
+    ],
+    "transactions": [
+        {
+            "id": "t1",
+            "type": "GIVE",
+            "fromUserId": "u1",
+            "toUserId": "u2",
+            "amount": 50,
+            "date": "2025-12-05T10:00:00Z",
+            "message": "Great job on the opening shift!"
+        },
+        {
+            "id": "t2",
+            "type": "REDEEM",
+            "toUserId": "u2",
+            "amount": 150,
+            "date": "2025-12-06T14:30:00Z",
+            "rewardId": "r1"
+        }
+    ]
+}

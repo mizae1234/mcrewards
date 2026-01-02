@@ -1,0 +1,109 @@
+{
+    "rewards": [
+        {
+            "id": "r1",
+            "name": "Sony WH-1000XM5",
+            "category": "Electronics",
+            "description": "Noise canceling headphones",
+            "pointsCost": 5000,
+            "stock": 10,
+            "imageUrl": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=800",
+            "isPhysical": true,
+            "status": "active",
+            "createdAt": "2023-01-01T00:00:00Z",
+            "updatedAt": "2023-01-01T00:00:00Z"
+        },
+        {
+            "id": "r2",
+            "name": "Starbucks Gift Card 500 THB",
+            "category": "Vouchers",
+            "description": "Digital Voucher",
+            "pointsCost": 500,
+            "stock": 100,
+            "imageUrl": "https://images.unsplash.com/photo-1545231027-637d2f6210f8?auto=format&fit=crop&q=80&w=800",
+            "isPhysical": false,
+            "status": "active",
+            "createdAt": "2023-01-01T00:00:00Z",
+            "updatedAt": "2023-01-01T00:00:00Z"
+        },
+        {
+            "id": "r3",
+            "name": "iPad Air M1",
+            "category": "Electronics",
+            "description": "Apple Tablet",
+            "pointsCost": 15000,
+            "stock": 3,
+            "imageUrl": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&q=80&w=800",
+            "isPhysical": true,
+            "status": "active",
+            "createdAt": "2023-01-01T00:00:00Z",
+            "updatedAt": "2023-01-01T00:00:00Z"
+        }
+    ],
+    "redemptions": [
+        {
+            "id": "req1",
+            "rewardId": "r1",
+            "rewardName": "Sony WH-1000XM5",
+            "employeeCode": "E0002",
+            "employeeName": "Grimace Shake",
+            "businessUnit": "Ops",
+            "department": "Store",
+            "branch": "Siam Paragon",
+            "pointsUsed": 5000,
+            "requestedAt": "2023-10-25T10:00:00Z",
+            "status": "pending",
+            "shippingType": "delivery",
+            "shippingAddress": "123 Burger Lane, Bangkok",
+            "contactPhone": "0812345678",
+            "shippingStatus": "pending"
+        },
+        {
+            "id": "req2",
+            "rewardId": "r2",
+            "rewardName": "Starbucks Gift Card 500 THB",
+            "employeeCode": "E0003",
+            "employeeName": "Hamburglar",
+            "businessUnit": "HQ",
+            "department": "Marketing",
+            "branch": "Main Office",
+            "pointsUsed": 500,
+            "requestedAt": "2023-10-24T14:30:00Z",
+            "status": "approved",
+            "shippingType": "digital",
+            "shippingStatus": "delivered"
+        }
+    ],
+    "history": [
+        {
+            "id": "h1",
+            "rewardId": "r2",
+            "rewardName": "Starbucks Gift Card 500 THB",
+            "employeeCode": "E0003",
+            "employeeName": "Hamburglar",
+            "action": "redeemed",
+            "timestamp": "2023-10-24T14:30:00Z",
+            "actor": "Hamburglar"
+        },
+        {
+            "id": "h2",
+            "rewardId": "r2",
+            "rewardName": "Starbucks Gift Card 500 THB",
+            "employeeCode": "E0003",
+            "employeeName": "Hamburglar",
+            "action": "approved",
+            "timestamp": "2023-10-24T14:35:00Z",
+            "actor": "Admin"
+        },
+        {
+            "id": "h3",
+            "rewardId": "r1",
+            "rewardName": "Sony WH-1000XM5",
+            "employeeCode": "E0002",
+            "employeeName": "Grimace Shake",
+            "action": "redeemed",
+            "timestamp": "2023-10-25T10:00:00Z",
+            "actor": "Grimace Shake"
+        }
+    ]
+}

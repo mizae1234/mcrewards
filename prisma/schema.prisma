@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id                  String                  @id @unique(map: "employees_id_idx") @default(uuid())
+  employeeCode        String                  @unique
+  email               String                  @unique
+  fullname            String
+  position            String
+  businessUnit        String
+  department          String
+  branch              String
+  role                UserRole                @default(Staff)
+  quota               Int                     @default(0)
+  pointsBalance       Int                     @default(0)
+  avatar              String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  givenTransactions   RewardTransaction[]     @relation("GivenTransactions")
+  receivedAllocations TransactionAllocation[] @relation("ReceivedAllocations")
+
+  @@map("employees")
+}
+
+model RewardCategory {
+  id          String                  @id @default(uuid())
+  name        String                  @unique
+  description String?
+  color       String                  @default("#6B7280")
+  icon        String?
+  isActive    Boolean                 @default(true)
+  createdBy   String
+  updatedBy   String
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  allocations TransactionAllocation[]
+
+  @@map("reward_categories")
+}
+
+model RewardTransaction {
+  id          String                  @id @default(uuid())
+  type        TransactionType
+  totalPoints Int
+  status      TransactionStatus       @default(COMPLETED)
+  message     String?
+  groupType   String?
+  groupValue  String?
+  source      String
+  giverId     String
+  createdBy   String
+  updatedBy   String
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  giver       Employee                @relation("GivenTransactions", fields: [giverId], references: [id])
+  allocations TransactionAllocation[]
+
+  @@map("reward_transactions")
+}
+
+model TransactionAllocation {
+  id            String            @id @default(uuid())
+  transactionId String
+  recipientId   String
+  categoryId    String
+  points        Int
+  createdBy     String
+  updatedBy     String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  category      RewardCategory    @relation(fields: [categoryId], references: [id])
+  recipient     Employee          @relation("ReceivedAllocations", fields: [recipientId], references: [id])
+  transaction   RewardTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_allocations")
+}
+
+enum UserRole {
+  Admin
+  Executive
+  MiddleManagement @map("Middle Management")
+  Staff
+}
+
+enum TransactionType {
+  SINGLE
+  GROUP
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
