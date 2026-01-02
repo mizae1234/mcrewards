@@ -7,6 +7,8 @@ import { Button, Input, Modal } from '@/components/common/ui';
 import { Shield, User } from 'lucide-react';
 import Link from 'next/link';
 
+import Image from 'next/image';
+
 export default function LoginPage() {
     const [employeeCode, setEmployeeCode] = useState('');
     const [password, setPassword] = useState('');
@@ -47,10 +49,15 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-[#DA291C] p-4">
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
                 <div className="text-center mb-8">
-                    <div className="flex justify-center mb-4">
-                        <div className="bg-[#FFBC0D] p-3 rounded-full">
-                            <span className="text-[#DA291C] text-4xl font-black">M</span>
-                        </div>
+                    <div className="flex justify-center mb-6">
+                        <Image
+                            src="/images/logo.png"
+                            alt="M Rewards Logo"
+                            width={100}
+                            height={100}
+                            className="w-auto h-24 object-contain"
+                            priority
+                        />
                     </div>
                     <h1 className="text-2xl font-black text-gray-900">M Rewards</h1>
                     <p className="text-gray-500">Employee Login</p>
