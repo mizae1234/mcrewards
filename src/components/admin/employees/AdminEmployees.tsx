@@ -208,7 +208,7 @@ const AdminEmployees: React.FC = () => {
                                                 {emp.role}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-right font-medium text-brand-yellow font-bold">{emp.pointsBalance.toLocaleString()}</td>
+                                        <td className="px-4 py-3 text-right font-black text-gray-900 text-base">{emp.pointsBalance.toLocaleString()}</td>
 
                                         <td className="px-4 py-3 text-right text-gray-900 font-mono">{emp.quota.toLocaleString()}</td>
                                         <td className="px-4 py-3 text-right">
@@ -329,6 +329,16 @@ const AdminEmployees: React.FC = () => {
                         </div>
                     </div>
 
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Date of Birth (YYYY-MM-DD)</label>
+                        <Input
+                            type="date"
+                            value={editingEmployee.dateOfBirth ? new Date(editingEmployee.dateOfBirth).toISOString().split('T')[0] : ''}
+                            onChange={e => setEditingEmployee({ ...editingEmployee, dateOfBirth: e.target.value ? new Date(e.target.value) : undefined })}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Required for Password Reset verification</p>
+                    </div>
+
                     <div className="flex justify-end gap-2 mt-6">
                         <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
                         <Button type="submit">Save Employee</Button>
@@ -343,7 +353,7 @@ const AdminEmployees: React.FC = () => {
                         Upload an Excel file (.xlsx) with the following columns:
                     </p>
                     <div className="bg-gray-50 p-3 rounded-lg text-xs font-mono">
-                        Employee Code, Email, Fullname, Position, BU, Department, Branch, Role, Quota
+                        Employee Code, Email, Fullname, Position, BU, Department, Branch, Role, Quota, Date of Birth (YYYY-MM-DD)
                     </div>
 
                     <div className="flex gap-2">

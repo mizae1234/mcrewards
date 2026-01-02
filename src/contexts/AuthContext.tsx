@@ -21,7 +21,7 @@ interface AuthUser {
 interface AuthContextType {
     user: AuthUser | null;
     isLoading: boolean;
-    login: (employeeCode: string) => Promise<void>;
+    login: (employeeCode: string, password?: string) => Promise<AuthUser | void>;
     logout: () => void;
     refreshUser: () => Promise<void>;
 }
@@ -65,36 +65,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const login = async (employeeCode: string) => {
+    const login = async (employeeCode: string, password?: string) => {
         setIsLoading(true);
         try {
-            // Fetch user from API
-            const res = await fetch(`/api/employees?search=${encodeURIComponent(employeeCode)}`);
+            // Use new auth API
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeCode, password })
+            });
+
             if (!res.ok) {
-                throw new Error('Failed to fetch employee');
+                const data = await res.json();
+                throw new Error(data.error || 'Login failed');
             }
 
-            const employees = await res.json();
-            const foundEmployee = employees.find(
-                (e: AuthUser) => e.employeeCode === employeeCode || e.email === employeeCode
-            );
-
-            if (!foundEmployee) {
-                throw new Error('User not found');
-            }
-
+            const data = await res.json();
             const authUser: AuthUser = {
-                ...foundEmployee,
-                quotaRemaining: foundEmployee.quota
+                ...data.user,
+                quotaRemaining: data.user.quota
             };
 
             // Store session
             localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                employeeCode: foundEmployee.employeeCode,
+                employeeCode: authUser.employeeCode,
                 loginAt: Date.now()
             }));
 
             setUser(authUser);
+            return authUser; // Return user to allow component to handle redirection logic
         } catch (error) {
             console.error("Login failed", error);
             throw error;

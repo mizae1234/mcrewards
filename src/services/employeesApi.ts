@@ -13,6 +13,7 @@ export interface Employee {
     role: string;
     quota: number;
     pointsBalance: number;
+    dateOfBirth?: string | Date; // String from JSON, Date object in some contexts
     avatar?: string;
     createdAt?: string;
     updatedAt?: string;

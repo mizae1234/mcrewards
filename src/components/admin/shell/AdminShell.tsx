@@ -29,8 +29,8 @@ const AdminShell: React.FC<AdminShellProps> = ({ report, refreshData }) => {
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
-                                className={`px-4 py-3 font-bold text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === tab
-                                    ? 'border-brand-red text-brand-red'
+                                className={`px-4 py-3 font-bold text-sm transition-all border-b-4 whitespace-nowrap ${activeTab === tab
+                                    ? 'border-[#DA291C] text-[#DA291C] bg-red-50'
                                     : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                                     }`}
                             >

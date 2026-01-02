@@ -3,13 +3,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Button, Input } from '@/components/common/ui';
+import { Button, Input, Modal } from '@/components/common/ui';
+import { Shield, User } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
     const [employeeCode, setEmployeeCode] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showModeSelection, setShowModeSelection] = useState(false);
     const { login } = useAuth();
     const router = useRouter();
 
@@ -19,12 +22,24 @@ export default function LoginPage() {
         setError('');
 
         try {
-            await login(employeeCode);
-            router.push('/');
-        } catch {
-            setError('Invalid Employee Code or Password');
+            const user = await login(employeeCode, password);
+            if (user && user.role === 'Admin') {
+                setShowModeSelection(true);
+            } else {
+                router.push('/user');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Invalid Employee Code or Password');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleModeSelect = (mode: 'admin' | 'user') => {
+        if (mode === 'admin') {
+            router.push('/admin');
+        } else {
+            router.push('/user');
         }
     };
 
@@ -67,16 +82,19 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
+                            required
                             className="w-full text-lg"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                            First time login? Use your Employee Code as password.
+                        </p>
                         <div className="flex justify-between items-start mt-1">
-                            <button
-                                type="button"
-                                onClick={() => alert('Please contact your administrator (HR) to reset your password.\n\nกรุณาติดต่อผู้ดูแลระบบ (HR) เพื่อรีเซ็ตรหัสผ่านของคุณ')}
+                            <Link
+                                href="/forgot-password"
                                 className="text-sm font-bold text-gray-500 hover:text-red-600 hover:underline"
                             >
                                 Forgot Password?
-                            </button>
+                            </Link>
                         </div>
                     </div>
 
@@ -89,6 +107,38 @@ export default function LoginPage() {
                     </Button>
                 </form>
             </div>
+
+            {/* Admin Mode Selection Modal */}
+            <Modal
+                isOpen={showModeSelection}
+                onClose={() => { }} // Force selection
+                title="Select Login Mode"
+            >
+                <div className="p-4">
+                    <p className="text-center text-gray-600 mb-6">
+                        You have Admin privileges. Please select which dashboard you would like to access.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button
+                            onClick={() => handleModeSelect('user')}
+                            className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-[#DA291C] hover:bg-red-50 transition-all group"
+                        >
+                            <User size={48} className="text-gray-400 group-hover:text-[#DA291C] mb-3" />
+                            <span className="font-bold text-gray-700 group-hover:text-[#DA291C]">User Mode</span>
+                            <span className="text-xs text-gray-400 mt-1">View as Staff</span>
+                        </button>
+
+                        <button
+                            onClick={() => handleModeSelect('admin')}
+                            className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-[#DA291C] hover:bg-red-50 transition-all group"
+                        >
+                            <Shield size={48} className="text-gray-400 group-hover:text-[#DA291C] mb-3" />
+                            <span className="font-bold text-gray-700 group-hover:text-[#DA291C]">Admin Mode</span>
+                            <span className="text-xs text-gray-400 mt-1">Manage System</span>
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

@@ -44,7 +44,7 @@ export async function PUT(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { employeeCode, email, fullname, position, businessUnit, department, branch, role, quota, pointsBalance } = body;
+        const { employeeCode, email, fullname, position, businessUnit, department, branch, role, quota, pointsBalance, dateOfBirth } = body;
 
         const employee = await prisma.employee.update({
             where: { id },
@@ -59,6 +59,7 @@ export async function PUT(
                 role: role ? mapRole(role) : undefined,
                 quota,
                 pointsBalance,
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
                 avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullname)}`
             }
         });

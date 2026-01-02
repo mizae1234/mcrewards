@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { UserRole } from '@prisma/client';
+import { hashPassword } from '@/lib/auth';
 
 // Helper to map role string to enum
 function mapRole(roleStr: string): UserRole {
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { employeeCode, email, fullname, position, businessUnit, department, branch, role, quota } = body;
+        const { employeeCode, email, fullname, position, businessUnit, department, branch, role, quota, dateOfBirth } = body;
 
         const employee = await prisma.employee.create({
             data: {
@@ -58,6 +59,8 @@ export async function POST(request: Request) {
                 role: mapRole(role),
                 quota: quota || 0,
                 pointsBalance: 0,
+                password: await hashPassword(employeeCode), // Default password
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
                 avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullname)}`
             }
         });

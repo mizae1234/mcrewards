@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { UserRole } from '@prisma/client';
 import * as XLSX from 'xlsx';
+import { hashPassword } from '@/lib/auth';
 
 // Helper to map role string to enum
 function mapRole(roleStr: string): UserRole {
@@ -47,6 +48,19 @@ export async function POST(request: Request) {
                 const role = String(row['Role'] || row['บทบาท'] || 'Staff');
                 const quota = parseInt(String(row['Quota'] || row['โควต้า'] || '0'), 10);
 
+                // Parse Date of Birth
+                let dateOfBirth: Date | null = null;
+                const dobRaw = row['Date of Birth'] || row['DateOfBirth'] || row['วันเกิด'] || row['DOB'];
+                if (dobRaw) {
+                    // Handle Excel serial date or string
+                    if (typeof dobRaw === 'number') {
+                        dateOfBirth = new Date(Math.round((dobRaw - 25569) * 86400 * 1000));
+                    } else {
+                        dateOfBirth = new Date(String(dobRaw));
+                    }
+                    if (isNaN(dateOfBirth.getTime())) dateOfBirth = null;
+                }
+
                 if (!employeeCode || !email || !fullname) {
                     errors.push(`Row missing required fields: ${JSON.stringify(row)}`);
                     continue;
@@ -69,6 +83,7 @@ export async function POST(request: Request) {
                             branch,
                             role: mapRole(role),
                             quota,
+                            dateOfBirth,
                             avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullname)}`
                         }
                     });
@@ -86,6 +101,8 @@ export async function POST(request: Request) {
                             role: mapRole(role),
                             quota,
                             pointsBalance: 0,
+                            password: await hashPassword(employeeCode), // Default password = employeeCode
+                            dateOfBirth,
                             avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullname)}`
                         }
                     });
