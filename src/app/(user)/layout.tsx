@@ -27,7 +27,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
     const handleLogout = () => {
         logout();
-        router.push('/login');
+        window.location.href = '/login';
     };
 
     const isActive = (path: string) => {

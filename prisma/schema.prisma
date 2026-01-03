@@ -26,6 +26,7 @@ model Employee {
   updatedAt           DateTime                @updatedAt
   givenTransactions   RewardTransaction[]     @relation("GivenTransactions")
   receivedAllocations TransactionAllocation[] @relation("ReceivedAllocations")
+  redeemRequests      RedeemRequest[]
 
   @@map("employees")
 }
@@ -83,6 +84,80 @@ model TransactionAllocation {
   @@map("transaction_allocations")
 }
 
+// ============================================
+// REWARDS CATALOG & REDEMPTION MODELS
+// ============================================
+
+model Reward {
+  id             String          @id @default(uuid())
+  name           String
+  description    String?
+  imageUrl       String?
+  category       String          // Electronics, Vouchers, Merchandise, etc.
+  pointsCost     Int
+  stock          Int             @default(0)
+  isPhysical     Boolean         @default(true)
+  status         RewardStatus    @default(ACTIVE)
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  redeemRequests RedeemRequest[]
+
+  @@index([status])
+  @@index([isPhysical])
+  @@map("rewards")
+}
+
+model RedeemRequest {
+  id              String         @id @default(uuid())
+  employeeId      String
+  rewardId        String
+  pointsUsed      Int
+  status          RedeemStatus   @default(PENDING)
+  shippingType    ShippingType   @default(PICKUP)
+  shippingAddress String?
+  contactPhone    String?
+  shippingStatus  ShippingStatus @default(PENDING)
+  trackingNumber  String?
+  carrier         String?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  note            String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectedReason  String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  employee        Employee       @relation(fields: [employeeId], references: [id])
+  reward          Reward         @relation(fields: [rewardId], references: [id])
+
+  @@index([status])
+  @@index([employeeId])
+  @@index([shippingStatus])
+  @@map("redeem_requests")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String   // CREATE_REWARD, APPROVE_REDEEM, UPDATE_SHIPPING, etc.
+  entityType String   // Reward, RedeemRequest
+  entityId   String
+  actorId    String
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
 enum UserRole {
   Admin
   Executive
@@ -102,3 +177,32 @@ enum TransactionStatus {
   CANCELLED
   FAILED
 }
+
+enum RewardStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+enum RedeemStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ShippingType {
+  PICKUP
+  DELIVERY
+  DIGITAL
+}
+
+enum ShippingStatus {
+  NOT_REQUIRED
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  RETURNED
+}
+

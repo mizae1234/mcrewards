@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import QRCode from 'qrcode';
 import { Api } from '@/services/api';
 import { User, QRToken } from '@/types';
 import { X, RefreshCw, Copy, Check } from 'lucide-react';
@@ -14,25 +14,41 @@ interface QRGeneratorModalProps {
 }
 
 export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ user, isOpen, onClose }) => {
-    if (!isOpen) return null;
     const [token, setToken] = useState<QRToken | null>(null);
+    const [qrImage, setQrImage] = useState<string>('');
     const [timeLeft, setTimeLeft] = useState<number>(0);
     const [copied, setCopied] = useState(false);
 
     // Generate token on mount
     useEffect(() => {
-        generateToken();
-    }, [user.id]);
+        if (isOpen) {
+            generateToken();
+        }
+    }, [user.id, isOpen]);
 
-    const generateToken = () => {
+    const generateToken = async () => {
         const newToken = Api.generateQR(user.id);
         setToken(newToken);
         setTimeLeft(300); // 5 minutes in seconds
+
+        try {
+            const url = await QRCode.toDataURL(newToken.token, {
+                width: 300,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            });
+            setQrImage(url);
+        } catch (err) {
+            console.error('Error generating QR code', err);
+        }
     };
 
     // Timer countdown
     useEffect(() => {
-        if (!timeLeft || !token) return;
+        if (!timeLeft || !token || !isOpen) return;
         const interval = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
@@ -43,7 +59,7 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ user, isOpen
             });
         }, 1000);
         return () => clearInterval(interval);
-    }, [timeLeft, token]);
+    }, [timeLeft, token, isOpen]);
 
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -58,6 +74,9 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ user, isOpen
             setTimeout(() => setCopied(false), 2000);
         }
     }
+
+    // Early return AFTER all hooks
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -84,21 +103,30 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ user, isOpen
                 <div className="p-8 flex flex-col items-center space-y-6">
 
                     {token && timeLeft > 0 ? (
-                        <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-100">
-                            <QRCodeSVG
-                                value={token.token}
-                                size={220}
-                                level={"H"}
-                                includeMargin={true}
-                                imageSettings={{
-                                    src: "https://upload.wikimedia.org/wikipedia/commons/3/36/McDonald%27s_Golden_Arches.svg",
-                                    x: undefined,
-                                    y: undefined,
-                                    height: 40,
-                                    width: 40,
-                                    excavate: true,
-                                }}
-                            />
+                        <div className="p-4 bg-white rounded-xl shadow-inner border border-gray-100 flex items-center justify-center">
+                            <div className="bg-white p-4 relative">
+                                {qrImage ? (
+                                    <>
+                                        <img
+                                            src={qrImage}
+                                            alt="QR Code"
+                                            className="w-full h-auto max-w-[200px]"
+                                        />
+                                        {/* Logo overlay in center */}
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="bg-white p-1 rounded-lg shadow-sm">
+                                                <img
+                                                    src="/images/logo.png"
+                                                    alt="Logo"
+                                                    className="w-10 h-10 object-contain"
+                                                />
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="w-[200px] h-[200px] bg-gray-100 animate-pulse rounded" />
+                                )}
+                            </div>
                         </div>
                     ) : (
                         <div className="w-64 h-64 flex flex-col items-center justify-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-gray-400">
