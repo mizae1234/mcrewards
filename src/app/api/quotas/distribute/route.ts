@@ -79,28 +79,32 @@ export async function POST(request: NextRequest) {
 
             for (const emp of employees) {
                 const pointsBefore = emp.pointsBalance;
+                const quotaBefore = emp.quota || 0;
                 let newBalance: number;
+                let newQuota: number;
 
                 if (isDeduction) {
                     // For deduction: ensure balance doesn't go below 0
                     newBalance = Math.max(0, pointsBefore + amount);
+                    newQuota = Math.max(0, quotaBefore + amount);
                 } else {
-                    // For addition: simply add
+                    // For addition: simply add to both points and quota
                     newBalance = pointsBefore + amount;
+                    newQuota = quotaBefore + amount;
                 }
 
                 const actualChange = newBalance - pointsBefore;
                 totalActualChange += actualChange;
 
                 // Debug log
-                console.log(`[ALLOCATE] Employee ${emp.employeeCode}: ${pointsBefore} + ${amount} = ${newBalance}`);
+                console.log(`[ALLOCATE] Employee ${emp.employeeCode}: Points ${pointsBefore} + ${amount} = ${newBalance}, Quota ${quotaBefore} + ${amount} = ${newQuota}`);
 
-                // Update employee
+                // Update employee - both pointsBalance AND quota
                 await tx.employee.update({
                     where: { id: emp.id },
                     data: {
                         pointsBalance: newBalance,
-                        quota: Math.abs(amount) // Update quota to latest allowance
+                        quota: newQuota
                     }
                 });
 

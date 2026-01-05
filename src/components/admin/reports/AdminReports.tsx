@@ -1,11 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Input, Button, Badge } from '@/components/common/ui';
-import { User, Transaction, TransactionType } from '@/types';
-import { RewardItem, RedemptionRequest, RedemptionStatus } from '@/types/rewards';
-import { Api } from '@/services/api';
-import { RewardsCatalogApi } from '@/services/rewardsCatalog';
 import {
     Users,
     Gift,
@@ -14,185 +10,86 @@ import {
     Building2,
     AlertCircle,
     Calendar,
-    Award
+    Award,
+    Loader2
 } from 'lucide-react';
 
+interface DashboardData {
+    kpi: {
+        totalPointsIssued: number;
+        totalPointsRedeemed: number;
+        pendingRequests: number;
+        activeUsersCount: number;
+        activeDeptsCount: number;
+    };
+    catalog: Array<{
+        id: string;
+        name: string;
+        category: string;
+        pointsCost: number;
+        stock: number;
+        status: string;
+        redeemedCount: number;
+    }>;
+    userActivity: Array<{
+        id: string;
+        name: string;
+        department: string;
+        given: number;
+        received: number;
+        redeemed: number;
+    }>;
+    teamActivity: Array<{
+        department: string;
+        given: number;
+        received: number;
+        redeemed: number;
+        activeUsersCount: number;
+    }>;
+}
+
 const AdminReports: React.FC = () => {
-    // --- State ---
     const [dateRange, setDateRange] = useState({
-        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], // Start of current month
-        end: new Date().toISOString().split('T')[0] // Today
+        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0]
     });
 
     const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<DashboardData | null>(null);
 
-    // Raw Data
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [users, setUsers] = useState<User[]>([]);
-    const [rewards, setRewards] = useState<RewardItem[]>([]);
-    const [redemptions, setRedemptions] = useState<RedemptionRequest[]>([]);
-
-    // --- Loading ---
     const loadData = async () => {
         setLoading(true);
-        const [txs, usrs, rwds, reqs] = await Promise.all([
-            Api.getTransactions(),
-            Promise.resolve(Api.getUsers()),
-            RewardsCatalogApi.getRewards(),
-            RewardsCatalogApi.getRedemptions()
-        ]);
-        setTransactions(txs);
-        setUsers(usrs);
-        setRewards(rwds);
-        setRedemptions(reqs);
-        setLoading(false);
+        try {
+            const res = await fetch(`/api/dashboard?start=${dateRange.start}&end=${dateRange.end}`);
+            if (res.ok) {
+                const result = await res.json();
+                setData(result);
+            }
+        } catch (error) {
+            console.error('Failed to load dashboard:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         loadData();
     }, []);
 
-    // --- Filtering & Aggregation ---
-    const filteredData = useMemo(() => {
-        const start = new Date(dateRange.start).getTime();
-        const end = new Date(dateRange.end).getTime() + (24 * 60 * 60 * 1000); // Include end date fully
+    const handleApply = () => {
+        loadData();
+    };
 
-        const filterDate = (d: string) => {
-            const time = new Date(d).getTime();
-            return time >= start && time < end;
-        };
+    if (loading || !data) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="animate-spin text-gray-400" size={32} />
+            </div>
+        );
+    }
 
-        const txs = transactions.filter(t => filterDate(t.date));
-        const reqs = redemptions.filter(r => filterDate(r.requestedAt));
-
-        // 1. KPI Cards
-        const totalPointsIssued = txs
-            .filter(t => t.type === TransactionType.GIVE)
-            .reduce((acc, t) => acc + t.amount, 0);
-
-        const totalPointsRedeemed = reqs.reduce((acc, r) => acc + r.pointsUsed, 0);
-
-        const pendingRequests = redemptions.filter(r => r.status === RedemptionStatus.PENDING).length; // Global pending, or range? Usually global backlog is more useful, but user asked for "in period". Let's stick to "Current Pending" generally, but user request says "Pending...". I'll show Current Pending generally as it makes more sense for a dashboard. However, "Active Users" must be in period.
-        // Actually, "number of pending requests" usually implies current backlog. Let's do current backlog for Pending, but period for others.
-        // Wait, user requirement: "Pending Redeem Requests (จำนวนคำขอแลกของรางวัลที่ยังไม่อนุมัติ)"
-        // It doesn't explicitly say "in period" like others, but context implies dashboard range. 
-        // Showing *only* pending requests created in that period might hide old ignore ones. 
-        // I will interpret as "Current Pending Count" because that is actionable.
-
-        const activeUserIds = new Set<string>();
-        txs.forEach(t => {
-            if (t.fromUserId) activeUserIds.add(t.fromUserId);
-            if (t.toUserId) activeUserIds.add(t.toUserId);
-        });
-        const activeUsersCount = activeUserIds.size;
-
-        const activeDepts = new Set<string>();
-        users.forEach(u => {
-            if (activeUserIds.has(u.id) && u.department) {
-                activeDepts.add(u.department);
-            }
-        });
-
-        // 2. Catalog Summary
-        // Map rewardId -> redemption count in period
-        const redemptionCounts: Record<string, number> = {};
-        reqs.forEach(r => {
-            redemptionCounts[r.rewardId] = (redemptionCounts[r.rewardId] || 0) + 1;
-        });
-
-        const catalogStats = rewards.map(r => ({
-            ...r,
-            redeemedCount: redemptionCounts[r.id] || 0
-        })).sort((a, b) => b.redeemedCount - a.redeemedCount);
-
-        // 3. User Activity
-        const userStatsMap: Record<string, { given: number, received: number, redeemed: number, lastActive: string }> = {};
-
-        // Init for all users so we include 0s if needed, or just active. "Active Users" implies active.
-        // Let's iterate transactions to build stats
-        txs.forEach(t => {
-            const date = t.date;
-
-            // Give
-            if (t.type === TransactionType.GIVE) {
-                if (t.fromUserId) {
-                    if (!userStatsMap[t.fromUserId]) userStatsMap[t.fromUserId] = { given: 0, received: 0, redeemed: 0, lastActive: '' };
-                    userStatsMap[t.fromUserId].given += t.amount;
-                    if (date > userStatsMap[t.fromUserId].lastActive) userStatsMap[t.fromUserId].lastActive = date;
-                }
-                if (t.toUserId) {
-                    if (!userStatsMap[t.toUserId]) userStatsMap[t.toUserId] = { given: 0, received: 0, redeemed: 0, lastActive: '' };
-                    userStatsMap[t.toUserId].received += t.amount;
-                    if (date > userStatsMap[t.toUserId].lastActive) userStatsMap[t.toUserId].lastActive = date;
-                }
-            }
-            // Redeem (Mainly tracking points burned/items)
-            if (t.type === TransactionType.REDEEM) {
-                if (t.toUserId) {
-                    if (!userStatsMap[t.toUserId]) userStatsMap[t.toUserId] = { given: 0, received: 0, redeemed: 0, lastActive: '' };
-                    // We count *items* or *points*? Table says "Rewards Redeemed". Could be count.
-                    // Let's count items.
-                    // But T is raw transaction. We can count T.
-                    userStatsMap[t.toUserId].redeemed += 1;
-                    if (date > userStatsMap[t.toUserId].lastActive) userStatsMap[t.toUserId].lastActive = date;
-                }
-            }
-        });
-
-        const userActivity = Object.entries(userStatsMap).map(([uid, stats]) => {
-            const u = users.find(user => user.id === uid);
-            return {
-                id: uid,
-                name: u?.name || 'Unknown',
-                department: u?.department || '-',
-                ...stats
-            };
-        }).sort((a, b) => (b.given + b.received + b.redeemed) - (a.given + a.received + a.redeemed));
-
-        // 4. Team Activity
-        const teamStatsMap: Record<string, { given: number, received: number, redeemed: number, activeUsers: Set<string> }> = {};
-
-        // Aggregate from userActivity to ensure consistency
-        users.forEach(u => {
-            // Check if user has activity
-            const stats = userStatsMap[u.id];
-            if (stats && u.department) {
-                if (!teamStatsMap[u.department]) teamStatsMap[u.department] = { given: 0, received: 0, redeemed: 0, activeUsers: new Set() };
-                teamStatsMap[u.department].given += stats.given;
-                teamStatsMap[u.department].received += stats.received;
-                teamStatsMap[u.department].redeemed += stats.redeemed;
-                teamStatsMap[u.department].activeUsers.add(u.id);
-            }
-        });
-
-        const teamActivity = Object.entries(teamStatsMap).map(([dept, stats]) => ({
-            department: dept,
-            given: stats.given,
-            received: stats.received,
-            redeemed: stats.redeemed,
-            activeUsersCount: stats.activeUsers.size
-        })).sort((a, b) => (b.given + b.received) - (a.given + a.received));
-
-        // Summary Cards
-        const mostActiveUser = userActivity.length > 0 ? userActivity[0] : null;
-        const mostActiveDept = teamActivity.length > 0 ? teamActivity[0] : null;
-
-        return {
-            kpi: {
-                totalPointsIssued,
-                totalPointsRedeemed,
-                pendingRequests,
-                activeUsersCount,
-                activeDeptsCount: activeDepts.size
-            },
-            catalog: catalogStats,
-            userActivity,
-            teamActivity,
-            mostActiveUser,
-            mostActiveDept
-        };
-
-    }, [dateRange, transactions, users, rewards, redemptions]);
+    const mostActiveUser = data.userActivity.length > 0 ? data.userActivity[0] : null;
+    const mostActiveDept = data.teamActivity.length > 0 ? data.teamActivity[0] : null;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -221,7 +118,7 @@ const AdminReports: React.FC = () => {
                             className="w-40"
                         />
                     </div>
-                    <Button onClick={() => loadData()}>
+                    <Button onClick={handleApply}>
                         <Calendar size={16} className="mr-2" /> Apply
                     </Button>
                 </div>
@@ -231,7 +128,7 @@ const AdminReports: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <KPICard
                     title="Points Issued"
-                    value={filteredData.kpi.totalPointsIssued.toLocaleString()}
+                    value={data.kpi.totalPointsIssued.toLocaleString()}
                     subtitle="Total points given"
                     icon={Gift}
                     color="text-blue-600"
@@ -240,7 +137,7 @@ const AdminReports: React.FC = () => {
                 />
                 <KPICard
                     title="Points Redeemed"
-                    value={filteredData.kpi.totalPointsRedeemed.toLocaleString()}
+                    value={data.kpi.totalPointsRedeemed.toLocaleString()}
                     subtitle="Total points spent"
                     icon={CreditCard}
                     color="text-purple-600"
@@ -249,7 +146,7 @@ const AdminReports: React.FC = () => {
                 />
                 <KPICard
                     title="Pending Requests"
-                    value={filteredData.kpi.pendingRequests.toLocaleString()}
+                    value={data.kpi.pendingRequests.toLocaleString()}
                     subtitle="Awaiting approval"
                     icon={AlertCircle}
                     color="text-orange-600"
@@ -258,7 +155,7 @@ const AdminReports: React.FC = () => {
                 />
                 <KPICard
                     title="Active Users"
-                    value={filteredData.kpi.activeUsersCount.toLocaleString()}
+                    value={data.kpi.activeUsersCount.toLocaleString()}
                     subtitle="In selected period"
                     icon={Users}
                     color="text-green-600"
@@ -267,7 +164,7 @@ const AdminReports: React.FC = () => {
                 />
                 <KPICard
                     title="Active Depts"
-                    value={filteredData.kpi.activeDeptsCount.toLocaleString()}
+                    value={data.kpi.activeDeptsCount.toLocaleString()}
                     subtitle="Participating teams"
                     icon={Building2}
                     color="text-indigo-600"
@@ -295,7 +192,7 @@ const AdminReports: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredData.catalog.slice(0, 5).map((item, idx) => (
+                            {data.catalog.slice(0, 5).map((item, idx) => (
                                 <tr key={item.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 font-medium text-gray-900">
                                         <div className="flex items-center gap-2">
@@ -313,12 +210,17 @@ const AdminReports: React.FC = () => {
                                         {item.stock < 10 && <span className="text-[10px] text-red-500 ml-1 block">Low Stock</span>}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <Badge color={item.status === 'active' ? 'green' : 'gray'}>
-                                            {item.status.toUpperCase()}
+                                        <Badge color={item.status === 'ACTIVE' ? 'green' : 'gray'}>
+                                            {item.status}
                                         </Badge>
                                     </td>
                                 </tr>
                             ))}
+                            {data.catalog.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No rewards in catalog</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -329,14 +231,13 @@ const AdminReports: React.FC = () => {
 
                 {/* User Activity */}
                 <div className="space-y-4">
-                    {/* Summary Card */}
-                    {filteredData.mostActiveUser && (
+                    {mostActiveUser && (
                         <Card className="p-4 bg-gradient-to-r from-blue-50 to-white border-blue-100 flex items-center justify-between">
                             <div>
                                 <div className="text-xs font-bold text-blue-500 uppercase mb-1">Most Active User</div>
-                                <div className="text-lg font-bold text-gray-900">{filteredData.mostActiveUser.name}</div>
+                                <div className="text-lg font-bold text-gray-900">{mostActiveUser.name}</div>
                                 <div className="text-sm text-gray-500">
-                                    {(filteredData.mostActiveUser.given + filteredData.mostActiveUser.received).toLocaleString()} Pts Flow
+                                    {(mostActiveUser.given + mostActiveUser.received).toLocaleString()} Pts Flow
                                 </div>
                             </div>
                             <Award className="text-blue-300 w-10 h-10" />
@@ -358,7 +259,7 @@ const AdminReports: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {filteredData.userActivity.map(u => (
+                                    {data.userActivity.map(u => (
                                         <tr key={u.id}>
                                             <td className="px-4 py-2">
                                                 <div className="font-medium text-gray-900">{u.name}</div>
@@ -369,6 +270,11 @@ const AdminReports: React.FC = () => {
                                             <td className="px-4 py-2 text-right text-purple-600">{u.redeemed}</td>
                                         </tr>
                                     ))}
+                                    {data.userActivity.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No user activity in period</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -377,14 +283,13 @@ const AdminReports: React.FC = () => {
 
                 {/* Team Activity */}
                 <div className="space-y-4">
-                    {/* Summary Card */}
-                    {filteredData.mostActiveDept && (
+                    {mostActiveDept && (
                         <Card className="p-4 bg-gradient-to-r from-indigo-50 to-white border-indigo-100 flex items-center justify-between">
                             <div>
                                 <div className="text-xs font-bold text-indigo-500 uppercase mb-1">Most Active Dept</div>
-                                <div className="text-lg font-bold text-gray-900">{filteredData.mostActiveDept.department}</div>
+                                <div className="text-lg font-bold text-gray-900">{mostActiveDept.department}</div>
                                 <div className="text-sm text-gray-500">
-                                    {(filteredData.mostActiveDept.given + filteredData.mostActiveDept.received).toLocaleString()} Pts Flow
+                                    {(mostActiveDept.given + mostActiveDept.received).toLocaleString()} Pts Flow
                                 </div>
                             </div>
                             <Building2 className="text-indigo-300 w-10 h-10" />
@@ -406,7 +311,7 @@ const AdminReports: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {filteredData.teamActivity.map(t => (
+                                    {data.teamActivity.map(t => (
                                         <tr key={t.department}>
                                             <td className="px-4 py-2 font-medium text-gray-900">{t.department}</td>
                                             <td className="px-4 py-2 text-right text-gray-900">{t.given.toLocaleString()}</td>
@@ -414,6 +319,11 @@ const AdminReports: React.FC = () => {
                                             <td className="px-4 py-2 text-right font-bold">{t.activeUsersCount}</td>
                                         </tr>
                                     ))}
+                                    {data.teamActivity.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-4 py-8 text-center text-gray-400">No department activity in period</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button, Card } from '@/components/common/ui';
-import { Gift, QrCode, ShoppingBag, Clock, Bell, Send, Loader2 } from 'lucide-react';
+import { Button, Card, Modal } from '@/components/common/ui';
+import { Gift, QrCode, ShoppingBag, Clock, Bell, Send, Loader2, ChevronRight, Calendar, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PointsCard } from '@/components/user/dashboard/PointsCard';
 import { RewardLevelList } from '@/components/user/dashboard/RewardLevelList';
 import { QRGeneratorModal } from '@/components/common/QRGeneratorModal';
-import { AdminNewsApi } from '@/services/adminNews';
-import { NewsItem } from '@/types';
+import { NewsApi, News } from '@/services/newsApi';
 
 interface Activity {
     id: string;
@@ -22,9 +21,12 @@ interface Activity {
 export default function UserDashboard() {
     const { user: currentUser, refreshUser } = useAuth();
     const [showQR, setShowQR] = useState(false);
-    const [news, setNews] = useState<NewsItem[]>([]);
+    const [news, setNews] = useState<News[]>([]);
+    const [showAllNews, setShowAllNews] = useState(false);
+    const [selectedNews, setSelectedNews] = useState<News | null>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loadingActivities, setLoadingActivities] = useState(true);
+    const [loadingNews, setLoadingNews] = useState(true);
 
     useEffect(() => {
         if (currentUser) loadData();
@@ -33,9 +35,18 @@ export default function UserDashboard() {
     const loadData = async () => {
         if (!currentUser) return;
 
-        const newsData = await AdminNewsApi.getPublished();
-        setNews(newsData);
+        // Load published news from new API
+        setLoadingNews(true);
+        try {
+            const newsData = await NewsApi.getAll(false); // false = staff view (published only)
+            setNews(newsData);
+        } catch (error) {
+            console.error('Failed to load news:', error);
+        } finally {
+            setLoadingNews(false);
+        }
 
+        // Load activities
         setLoadingActivities(true);
         try {
             const res = await fetch(`/api/activities?employeeId=${currentUser.id}&limit=10`);
@@ -75,6 +86,9 @@ export default function UserDashboard() {
 
     if (!currentUser) return null;
 
+    // Display only 3 news if not showing all
+    const displayedNews = showAllNews ? news : news.slice(0, 3);
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <PointsCard user={currentUser} />
@@ -88,30 +102,66 @@ export default function UserDashboard() {
 
             <RewardLevelList user={currentUser} onRedeemSuccess={refreshData} />
 
-            {news.length > 0 && (
+            {/* News Section */}
+            {loadingNews ? (
+                <div className="text-center py-6">
+                    <Loader2 className="animate-spin text-gray-400 mx-auto" size={24} />
+                </div>
+            ) : news.length > 0 && (
                 <div className="space-y-3">
-                    <div className="flex items-center gap-2 px-1">
-                        <Bell size={20} className="text-[#DA291C]" />
-                        <h3 className="font-bold text-lg text-gray-900 opacity-90">News & Updates</h3>
+                    <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
+                            <Bell size={20} className="text-[#DA291C]" />
+                            <h3 className="font-bold text-lg text-gray-900 opacity-90">News & Updates</h3>
+                        </div>
+                        {news.length > 3 && !showAllNews && (
+                            <button
+                                onClick={() => setShowAllNews(true)}
+                                className="text-sm text-[#DA291C] font-medium flex items-center gap-1 hover:underline"
+                            >
+                                View All ({news.length})
+                                <ChevronRight size={16} />
+                            </button>
+                        )}
                     </div>
                     <div className="space-y-4">
-                        {news.map(item => (
-                            <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                {item.imageUrl && (
+                        {displayedNews.map(item => (
+                            <div
+                                key={item.id}
+                                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
+                                onClick={() => setSelectedNews(item)}
+                            >
+                                {item.coverImage && (
                                     <div className="h-32 w-full bg-gray-100">
-                                        <img src={item.imageUrl} className="w-full h-full object-cover" alt="" />
+                                        <img src={item.coverImage} className="w-full h-full object-cover" alt="" />
                                     </div>
                                 )}
                                 <div className="p-4">
                                     <div className="flex justify-between items-start mb-1">
                                         <h4 className="font-bold text-gray-900">{item.title}</h4>
-                                        {item.publishDate && <span className="text-[10px] text-gray-400">{new Date(item.publishDate).toLocaleDateString()}</span>}
+                                        {item.publishedAt && (
+                                            <span className="text-[10px] text-gray-400 flex items-center gap-1 flex-shrink-0">
+                                                <Calendar size={10} />
+                                                {new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                        )}
                                     </div>
-                                    <p className="text-sm text-gray-500 line-clamp-2">{item.summary}</p>
+                                    <p className="text-sm text-gray-500 line-clamp-2">{item.description || item.content}</p>
+                                    <button className="text-sm text-[#DA291C] font-medium mt-2 hover:underline">
+                                        Read More →
+                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
+                    {showAllNews && news.length > 3 && (
+                        <button
+                            onClick={() => setShowAllNews(false)}
+                            className="text-sm text-gray-500 hover:text-gray-700 mx-auto block"
+                        >
+                            Show Less
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -151,8 +201,8 @@ export default function UserDashboard() {
                                                 </span>
                                                 {activity.type === 'redeem' && activity.status && (
                                                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${activity.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                                            activity.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                                'bg-yellow-100 text-yellow-700'
+                                                        activity.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'
                                                         }`}>
                                                         {activity.status}
                                                     </span>
@@ -175,6 +225,42 @@ export default function UserDashboard() {
                 onClose={() => setShowQR(false)}
                 user={currentUser}
             />
+
+            {/* News Detail Modal */}
+            <Modal
+                isOpen={!!selectedNews}
+                onClose={() => setSelectedNews(null)}
+                title={selectedNews?.title || ''}
+            >
+                {selectedNews && (
+                    <div className="space-y-4">
+                        {selectedNews.coverImage && (
+                            <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                                <img src={selectedNews.coverImage} alt="" className="w-full h-full object-cover" />
+                            </div>
+                        )}
+                        {selectedNews.publishedAt && (
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <Calendar size={14} />
+                                {new Date(selectedNews.publishedAt).toLocaleDateString('th-TH', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                })}
+                            </div>
+                        )}
+                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                            {selectedNews.content}
+                        </div>
+                        <Button
+                            onClick={() => setSelectedNews(null)}
+                            className="w-full bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        >
+                            Close
+                        </Button>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }

@@ -269,3 +269,28 @@ model PointsChangeLog {
   @@map("points_change_logs")
 }
 
+// ============================================
+// NEWS & ANNOUNCEMENTS
+// ============================================
+
+enum NewsStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model News {
+  id           String      @id @default(uuid())
+  title        String
+  content      String      @db.Text
+  description  String?     // Short description for list view
+  coverImage   String?     // URL to uploaded image
+  status       NewsStatus  @default(DRAFT)
+  publishedAt  DateTime?   // When published (null = not scheduled)
+  createdBy    String      // Admin ID
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([status])
+  @@index([publishedAt])
+  @@map("news")
+}

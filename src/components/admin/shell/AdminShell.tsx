@@ -6,7 +6,7 @@ import AdminReports from '../reports/AdminReports';
 import AdminEmployees from '../employees/AdminEmployees';
 import AdminRewardCatalog from '../rewards/AdminRewardCatalog';
 import AdminQuotas from './AdminQuotas';
-import AdminNews from './AdminNews';
+import AdminNews from '../news/AdminNews';
 import { KPIReport } from '@/types';
 import { LogOut, Home } from 'lucide-react';
 import Link from 'next/link';

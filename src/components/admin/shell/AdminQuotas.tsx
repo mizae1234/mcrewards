@@ -111,6 +111,16 @@ const AdminQuotas: React.FC = () => {
         }
     };
 
+    const getRoleBadgeColor = (role: string) => {
+        switch (role) {
+            case 'Admin': return 'bg-red-100 text-red-700';
+            case 'Executive': return 'bg-purple-100 text-purple-700';
+            case 'MiddleManagement': return 'bg-blue-100 text-blue-700';
+            case 'Staff': return 'bg-gray-100 text-gray-700';
+            default: return 'bg-gray-100 text-gray-700';
+        }
+    };
+
     const isDeduction = (distributeModal.amount || 0) < 0;
 
     return (
@@ -152,17 +162,12 @@ const AdminQuotas: React.FC = () => {
                                     <div className={`w-3 h-3 rounded-full ${getRoleColor(q.role)}`}></div>
                                     <div>
                                         <span className="font-bold text-gray-800 text-lg block">{getRoleDisplayName(q.role)}</span>
-                                        <div className="flex items-center gap-4 mt-1">
-                                            <span className="text-sm text-gray-500">
-                                                Current Allowance: <strong className="text-gray-900">{q.monthlyQuota.toLocaleString()}</strong> pts
+                                        {q.employeeCount !== undefined && (
+                                            <span className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                                                <Users size={12} />
+                                                {q.employeeCount} employees
                                             </span>
-                                            {q.employeeCount !== undefined && (
-                                                <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                    <Users size={12} />
-                                                    {q.employeeCount} employees
-                                                </span>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -218,7 +223,11 @@ const AdminQuotas: React.FC = () => {
                                 logs.map(log => (
                                     <tr key={log.id} className="hover:bg-gray-50/50">
                                         <td className="py-3 text-gray-600">{new Date(log.timestamp).toLocaleString('th-TH')}</td>
-                                        <td className="py-3 font-medium">{getRoleDisplayName(log.role)}</td>
+                                        <td className="py-3">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(log.role)}`}>
+                                                {getRoleDisplayName(log.role)}
+                                            </span>
+                                        </td>
                                         <td className={`py-3 text-right font-mono ${log.changeAmount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             <div className="flex items-center justify-end gap-1">
                                                 {log.changeAmount > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
