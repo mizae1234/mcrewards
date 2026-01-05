@@ -36,7 +36,15 @@ export async function POST(
                 }
             });
 
-            // 3. Update request status
+            // 3. Refund points to employee (was deducted on request creation)
+            await tx.employee.update({
+                where: { id: redeemRequest.employeeId },
+                data: {
+                    pointsBalance: redeemRequest.employee.pointsBalance + redeemRequest.pointsUsed
+                }
+            });
+
+            // 4. Update request status
             const updatedRequest = await tx.redeemRequest.update({
                 where: { id },
                 data: {
@@ -47,7 +55,7 @@ export async function POST(
                 }
             });
 
-            // 4. Log audit
+            // 5. Log audit
             await tx.auditLog.create({
                 data: {
                     action: 'REJECT_REDEEM',
@@ -58,7 +66,8 @@ export async function POST(
                         rewardName: redeemRequest.reward.name,
                         employeeName: redeemRequest.employee.fullname,
                         reason: reason || 'No reason provided',
-                        stockRestored: true
+                        stockRestored: true,
+                        pointsRefunded: redeemRequest.pointsUsed
                     }
                 }
             });

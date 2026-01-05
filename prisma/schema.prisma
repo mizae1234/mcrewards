@@ -17,6 +17,7 @@ model Employee {
   department          String
   branch              String
   role                UserRole                @default(Staff)
+  level               EmployeeLevel           @default(RISING_STAR)
   quota               Int                     @default(0)
   pointsBalance       Int                     @default(0)
   password            String?                 // Hashed password
@@ -97,9 +98,10 @@ model Reward {
   pointsCost     Int
   stock          Int             @default(0)
   isPhysical     Boolean         @default(true)
-  status         RewardStatus    @default(ACTIVE)
-  createdBy      String
-  updatedBy      String
+  status           RewardStatus    @default(ACTIVE)
+  minLevelRequired EmployeeLevel?  // null = available to all, otherwise requires this level or higher
+  createdBy        String
+  updatedBy        String
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   redeemRequests RedeemRequest[]
@@ -124,6 +126,7 @@ model RedeemRequest {
   shippedAt       DateTime?
   deliveredAt     DateTime?
   note            String?
+  digitalCode     String?        // For digital rewards - voucher code or download link
   approvedBy      String?
   approvedAt      DateTime?
   rejectedReason  String?
@@ -165,6 +168,15 @@ enum UserRole {
   Staff
 }
 
+enum EmployeeLevel {
+  RISING_STAR
+  ACHIEVER
+  OUTSTANDING
+  EXCELLENT_PERFORMER
+  EMPLOYEE_OF_THE_YEAR
+  HALL_OF_FAME
+}
+
 enum TransactionType {
   SINGLE
   GROUP
@@ -204,5 +216,56 @@ enum ShippingStatus {
   SHIPPED
   DELIVERED
   RETURNED
+}
+
+// ============================================
+// QUOTA MANAGEMENT MODELS
+// ============================================
+
+model RoleAllowance {
+  id            String                  @id @default(uuid())
+  role          UserRole                @unique
+  defaultQuota  Int                     @default(0)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  distributions AllowanceDistribution[]
+
+  @@map("role_allowances")
+}
+
+model AllowanceDistribution {
+  id              String             @id @default(uuid())
+  roleAllowanceId String
+  roleAllowance   RoleAllowance      @relation(fields: [roleAllowanceId], references: [id])
+  role            UserRole
+  amount          Int
+  affectedCount   Int                // Number of employees affected
+  distributedBy   String             // Admin ID or name
+  distributedAt   DateTime           @default(now())
+  note            String?
+  changeLogs      PointsChangeLog[]
+
+  @@index([role])
+  @@index([distributedAt])
+  @@map("allowance_distributions")
+}
+
+model PointsChangeLog {
+  id              String                @id @default(uuid())
+  distributionId  String
+  distribution    AllowanceDistribution @relation(fields: [distributionId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employeeCode    String
+  employeeName    String
+  pointsBefore    Int
+  pointsChange    Int                   // Requested change (can be negative)
+  actualChange    Int                   // Actual change applied (may differ if floor at 0)
+  pointsAfter     Int
+  createdAt       DateTime              @default(now())
+
+  @@index([distributionId])
+  @@index([employeeId])
+  @@index([createdAt])
+  @@map("points_change_logs")
 }
 

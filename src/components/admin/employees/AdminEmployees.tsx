@@ -108,9 +108,9 @@ const AdminEmployees: React.FC = () => {
 
         // Create template data
         const templateData = [
-            ['Employee Code', 'Email', 'Fullname', 'Position', 'BU', 'Department', 'Branch', 'Role', 'Quota'],
-            ['E0001', 'john@mcdonalds.com', 'John Doe', 'Manager', 'HQ', 'HR', 'Main Office', 'Admin', 1000],
-            ['E0002', 'jane@mcdonalds.com', 'Jane Smith', 'Staff', 'Site', 'Marketing', 'Bangkok', 'Staff', 0]
+            ['Employee Code', 'Email', 'Fullname', 'Position', 'BU', 'Department', 'Branch', 'Role', 'Quota', 'Date of Birth'],
+            ['E0001', 'john@mcdonalds.com', 'John Doe', 'Manager', 'HQ', 'HR', 'Main Office', 'Admin', 1000, '1990-01-15'],
+            ['E0002', 'jane@mcdonalds.com', 'Jane Smith', 'Staff', 'Site', 'Marketing', 'Bangkok', 'Staff', 0, '1995-06-20']
         ];
 
         // Create workbook and worksheet
@@ -128,12 +128,28 @@ const AdminEmployees: React.FC = () => {
             { wch: 15 }, // Branch
             { wch: 15 }, // Role
             { wch: 10 }, // Quota
+            { wch: 15 }, // Date of Birth
         ];
 
         XLSX.utils.book_append_sheet(wb, ws, 'Employees');
 
-        // Generate and download file
-        XLSX.writeFile(wb, 'employee_import_template.xlsx');
+        // Generate file as Blob and download with proper filename
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'employee_import_template.xlsx';
+        document.body.appendChild(a);
+        a.click();
+
+        // Cleanup
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
     };
 
     return (

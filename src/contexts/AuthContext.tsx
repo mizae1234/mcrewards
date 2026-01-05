@@ -7,6 +7,7 @@ interface AuthUser {
     employeeCode: string;
     email: string;
     fullname: string;
+    name: string; // Alias for fullname for compatibility
     position: string;
     department: string;
     businessUnit: string;
@@ -113,6 +114,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (emp) {
                     setUser({
                         ...emp,
+                        name: emp.fullname,
                         quotaRemaining: emp.quota
                     });
                 }

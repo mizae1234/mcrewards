@@ -21,7 +21,7 @@ const RewardForm: React.FC<RewardFormProps> = ({ isOpen, onClose, onSave, initia
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const data = initialData || { status: RewardStatus.ACTIVE, isPhysical: true };
+        const data = initialData || { status: RewardStatus.ACTIVE, isPhysical: true, category: 'General' };
         setFormData(data);
         setPreviewUrl(data.imageUrl || null);
         // If editing and has imageUrl, assume URL mode
@@ -30,7 +30,7 @@ const RewardForm: React.FC<RewardFormProps> = ({ isOpen, onClose, onSave, initia
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.pointsCost) return;
+        if (!formData.name || !formData.pointsCost || !formData.category) return;
 
         await onSave({
             ...formData,
@@ -171,8 +171,8 @@ const RewardForm: React.FC<RewardFormProps> = ({ isOpen, onClose, onSave, initia
                                 type="button"
                                 onClick={() => setImageMode('upload')}
                                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${imageMode === 'upload'
-                                        ? 'bg-white shadow text-gray-900'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-white shadow text-gray-900'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 <Upload size={12} className="inline mr-1" />
@@ -182,8 +182,8 @@ const RewardForm: React.FC<RewardFormProps> = ({ isOpen, onClose, onSave, initia
                                 type="button"
                                 onClick={() => setImageMode('url')}
                                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${imageMode === 'url'
-                                        ? 'bg-white shadow text-gray-900'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-white shadow text-gray-900'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 <Link size={12} className="inline mr-1" />

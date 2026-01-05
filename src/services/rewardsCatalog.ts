@@ -56,7 +56,7 @@ export const RewardsCatalogApi = {
                     pointsCost: reward.pointsCost,
                     stock: reward.stock,
                     isPhysical: reward.isPhysical,
-                    status: reward.status === RewardStatus.ACTIVE ? 'ACTIVE' : 'INACTIVE',
+                    status: String(reward.status).toUpperCase() === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
                     createdBy: 'Admin',
                     updatedBy: 'Admin'
                 })
@@ -128,7 +128,7 @@ export const RewardsCatalogApi = {
     },
 
     // --- Fulfillment ---
-    updateShippingStatus: async (id: string, shippingStatus: ShippingStatus, tracking: TrackingInfo | undefined, actor: string): Promise<void> => {
+    updateShippingStatus: async (id: string, shippingStatus: ShippingStatus, tracking: TrackingInfo | undefined, actor: string, returnReason?: string): Promise<void> => {
         try {
             const res = await fetch(`/api/admin/shipments/${id}`, {
                 method: 'PUT',
@@ -137,7 +137,8 @@ export const RewardsCatalogApi = {
                     shippingStatus: shippingStatus.toUpperCase().replace('-', '_'),
                     trackingNumber: tracking?.trackingNumber,
                     carrier: tracking?.carrier,
-                    updatedBy: actor
+                    updatedBy: actor,
+                    returnReason: returnReason
                 })
             });
 

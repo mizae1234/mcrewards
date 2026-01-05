@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
                 shippedAt: req.shippedAt?.toISOString(),
                 deliveredAt: req.deliveredAt?.toISOString()
             } : undefined,
+            digitalCode: req.digitalCode,
             note: req.note
         }));
 
@@ -137,13 +138,20 @@ export async function POST(request: NextRequest) {
                 throw new Error('Shipping address is required for delivery');
             }
 
-            // 4. Deduct stock (points deducted on approval)
+            // 4. Deduct stock
             await tx.reward.update({
                 where: { id: rewardId },
                 data: { stock: reward.stock - 1 }
             });
 
-            // 5. Create redeem request
+            // 5. Deduct points immediately (to prevent double-spending)
+            // Points will be refunded if admin rejects the request
+            await tx.employee.update({
+                where: { id: employeeId },
+                data: { pointsBalance: employee.pointsBalance - reward.pointsCost }
+            });
+
+            // 6. Create redeem request
             const redeemRequest = await tx.redeemRequest.create({
                 data: {
                     employeeId,

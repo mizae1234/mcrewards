@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { Api } from '@/services/api';
-import { User, QRToken } from '@/types';
+import { QRToken } from '@/types';
 import { X, RefreshCw, Copy, Check } from 'lucide-react';
 import { Button } from './ui';
 
 interface QRGeneratorModalProps {
-    user: User;
+    user: { id: string; name: string; avatar?: string | null };
     isOpen: boolean;
     onClose: () => void;
 }
@@ -91,7 +91,7 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ user, isOpen
                         <X size={24} />
                     </button>
                     <img
-                        src={user.avatar}
+                        src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`}
                         alt={user.name}
                         className="w-20 h-20 rounded-full border-4 border-white mx-auto shadow-md object-cover"
                     />

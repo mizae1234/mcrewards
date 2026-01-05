@@ -10,7 +10,7 @@ export async function POST(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { approvedBy } = body;
+        const { approvedBy, digitalCode } = body;
 
         // Use transaction to ensure atomicity
         const result = await prisma.$transaction(async (tx) => {
@@ -28,33 +28,24 @@ export async function POST(
                 throw new Error('Request is not pending');
             }
 
-            // 2. Check employee still has enough points
-            if (redeemRequest.employee.pointsBalance < redeemRequest.pointsUsed) {
-                throw new Error('Employee no longer has sufficient points');
-            }
+            // Points were already deducted when request was created
+            // Just update the request status
 
-            // 3. Deduct points from employee
-            await tx.employee.update({
-                where: { id: redeemRequest.employeeId },
-                data: {
-                    pointsBalance: redeemRequest.employee.pointsBalance - redeemRequest.pointsUsed
-                }
-            });
-
-            // 4. Update request status
+            // 2. Update request status (include digitalCode for digital rewards)
             const updatedRequest = await tx.redeemRequest.update({
                 where: { id },
                 data: {
                     status: RedeemStatus.APPROVED,
                     approvedBy: approvedBy || 'Admin',
                     approvedAt: new Date(),
+                    digitalCode: digitalCode || null,
                     shippingStatus: redeemRequest.reward.isPhysical
                         ? ShippingStatus.PROCESSING
                         : ShippingStatus.NOT_REQUIRED
                 }
             });
 
-            // 5. Log audit
+            // 3. Log audit
             await tx.auditLog.create({
                 data: {
                     action: 'APPROVE_REDEEM',
@@ -64,7 +55,8 @@ export async function POST(
                     details: {
                         rewardName: redeemRequest.reward.name,
                         employeeName: redeemRequest.employee.fullname,
-                        pointsDeducted: redeemRequest.pointsUsed
+                        pointsDeducted: redeemRequest.pointsUsed,
+                        digitalCode: digitalCode ? '***' : null // Don't log actual code
                     }
                 }
             });

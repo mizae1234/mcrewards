@@ -43,16 +43,16 @@ const RewardHistory: React.FC = () => {
                         <tbody className="divide-y divide-gray-100">
                             {history.map(h => (
                                 <tr key={h.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-gray-500 text-xs">
+                                    <td className="px-4 py-3 text-gray-600 text-sm">
                                         {new Date(h.timestamp).toLocaleString()}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className="font-mono text-xs font-bold uppercase">{h.action}</span>
+                                        <span className="font-mono text-sm font-bold uppercase text-blue-600">{h.action.replace(/_/g, '-')}</span>
                                     </td>
                                     <td className="px-4 py-3 font-medium text-gray-900">{h.rewardName}</td>
                                     <td className="px-4 py-3 text-gray-600">{h.employeeName}</td>
-                                    <td className="px-4 py-3 text-gray-500 text-xs">{h.actor}</td>
-                                    <td className="px-4 py-3 text-gray-500 italic text-xs">{h.note || '-'}</td>
+                                    <td className="px-4 py-3 text-gray-700 text-sm font-medium">{h.actor}</td>
+                                    <td className="px-4 py-3 text-gray-500 italic text-sm">{h.note || '-'}</td>
                                 </tr>
                             ))}
                             {history.length === 0 && (

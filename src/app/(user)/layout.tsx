@@ -9,7 +9,7 @@ import {
     Gift,
     ShoppingBag,
     History,
-    MoreHorizontal
+    LogOut
 } from 'lucide-react';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -60,13 +60,13 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
             {/* Bottom Navigation */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-between items-center px-6 py-2 z-50">
-                <Link href="/user" className={`flex flex-col items-center gap-1 ${isActive('/user') && !isActive('/user/redeem') && !isActive('/user/give') && !isActive('/user/history') ? 'text-[#FFBC0D]' : 'text-gray-400'}`}>
-                    <LayoutDashboard size={24} strokeWidth={isActive('/user') && !isActive('/user/redeem') && !isActive('/user/give') && !isActive('/user/history') ? 2.5 : 2} />
+                <Link href="/user" className={`flex flex-col items-center gap-1 ${isActive('/user') && !isActive('/user/redeem-history') && !isActive('/user/give') && !isActive('/user/history') ? 'text-[#FFBC0D]' : 'text-gray-400'}`}>
+                    <LayoutDashboard size={24} strokeWidth={isActive('/user') && !isActive('/user/redeem-history') && !isActive('/user/give') && !isActive('/user/history') ? 2.5 : 2} />
                     <span className="text-[10px] font-medium">Dashboard</span>
                 </Link>
-                <Link href="/user/redeem" className={`flex flex-col items-center gap-1 ${isActive('/user/redeem') ? 'text-[#FFBC0D]' : 'text-gray-400'}`}>
-                    <ShoppingBag size={24} strokeWidth={isActive('/user/redeem') ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium">Rewards Catalog</span>
+                <Link href="/user/redeem-history" className={`flex flex-col items-center gap-1 ${isActive('/user/redeem-history') ? 'text-[#FFBC0D]' : 'text-gray-400'}`}>
+                    <ShoppingBag size={24} strokeWidth={isActive('/user/redeem-history') ? 2.5 : 2} />
+                    <span className="text-[10px] font-medium">Redeem History</span>
                 </Link>
                 <Link href="/user/give" className={`flex flex-col items-center gap-1 ${isActive('/user/give') ? 'text-[#FFBC0D]' : 'text-gray-400'}`}>
                     <Gift size={24} strokeWidth={isActive('/user/give') ? 2.5 : 2} />
@@ -76,8 +76,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     <History size={24} strokeWidth={isActive('/user/history') ? 2.5 : 2} />
                     <span className="text-[10px] font-medium">History</span>
                 </Link>
-                <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-400">
-                    <MoreHorizontal size={24} />
+                <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-500 transition-colors">
+                    <LogOut size={24} />
                     <span className="text-[10px] font-medium">Logout</span>
                 </button>
             </div>
