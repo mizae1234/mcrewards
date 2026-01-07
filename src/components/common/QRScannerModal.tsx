@@ -13,29 +13,68 @@ interface QRScannerModalProps {
 export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSuccess }) => {
     const [isStarting, setIsStarting] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [scannedResult, setScannedResult] = useState<string | null>(null);
     const scannerRef = useRef<Html5Qrcode | null>(null);
-    const isMountedRef = useRef(true);
+    const isStartedRef = useRef(false);
+    const hasProcessedRef = useRef(false);
 
     const stopScanner = useCallback(async () => {
-        if (scannerRef.current) {
+        if (scannerRef.current && isStartedRef.current) {
             try {
                 await scannerRef.current.stop();
+            } catch (err) {
+                console.log('Scanner stop error (ignorable):', err);
+            }
+            try {
                 scannerRef.current.clear();
             } catch (err) {
-                console.log('Scanner already stopped');
+                console.log('Scanner clear error (ignorable):', err);
             }
-            scannerRef.current = null;
+            isStartedRef.current = false;
         }
+        scannerRef.current = null;
     }, []);
 
+    const handleScanSuccess = useCallback(async (decodedText: string) => {
+        // Prevent double processing
+        if (hasProcessedRef.current) return;
+        hasProcessedRef.current = true;
+
+        console.log('QR Scanned:', decodedText);
+        setScannedResult(decodedText);
+
+        // Stop scanner first
+        await stopScanner();
+
+        // Small delay then call success
+        setTimeout(() => {
+            try {
+                // Try to parse as JSON
+                const data = JSON.parse(decodedText);
+                const result = data.employeeId || data.id || data.employeeCode || decodedText;
+                console.log('Parsed result:', result);
+                onSuccess(result);
+            } catch {
+                // Not JSON, use as-is (could be employee code directly)
+                console.log('Using raw result:', decodedText);
+                onSuccess(decodedText);
+            }
+        }, 100);
+    }, [onSuccess, stopScanner]);
+
     const startScanner = useCallback(async () => {
+        // Prevent double start
+        if (isStartedRef.current || scannerRef.current) {
+            console.log('Scanner already started, skipping');
+            return;
+        }
+
         setError(null);
         setIsStarting(true);
+        hasProcessedRef.current = false;
 
         // Wait for DOM element to be ready
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        if (!isMountedRef.current) return;
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const qrReaderElement = document.getElementById('qr-reader');
         if (!qrReaderElement) {
@@ -44,6 +83,9 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
             return;
         }
 
+        // Clear any existing content
+        qrReaderElement.innerHTML = '';
+
         try {
             // Request camera permission first
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -51,10 +93,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
             });
             stream.getTracks().forEach(track => track.stop());
 
-            if (!isMountedRef.current) return;
-
             // Initialize scanner
-            const scanner = new Html5Qrcode('qr-reader');
+            const scanner = new Html5Qrcode('qr-reader', { verbose: false });
             scannerRef.current = scanner;
 
             await scanner.start(
@@ -65,71 +105,51 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
                     aspectRatio: 1.0,
                 },
                 (decodedText) => {
-                    // QR code scanned successfully
                     handleScanSuccess(decodedText);
                 },
                 () => {
-                    // Ignore scan errors (no QR found in frame)
+                    // Ignore - no QR found in this frame
                 }
             );
 
-            if (isMountedRef.current) {
-                setIsStarting(false);
-            }
+            isStartedRef.current = true;
+            setIsStarting(false);
         } catch (err: any) {
             console.error('Scanner error:', err);
-            if (isMountedRef.current) {
-                if (err.name === 'NotAllowedError') {
-                    setError('กรุณาอนุญาตการใช้กล้อง');
-                } else if (err.name === 'NotFoundError') {
-                    setError('ไม่พบกล้องในอุปกรณ์นี้');
-                } else {
-                    setError(err.message || 'ไม่สามารถเปิดกล้องได้');
-                }
-                setIsStarting(false);
-            }
-        }
-    }, []);
-
-    const handleScanSuccess = async (decodedText: string) => {
-        // Stop scanner first
-        await stopScanner();
-
-        try {
-            // Try to parse as JSON
-            const data = JSON.parse(decodedText);
-            if (data.employeeId || data.id || data.employeeCode) {
-                onSuccess(data.employeeId || data.id || data.employeeCode);
+            if (err.name === 'NotAllowedError') {
+                setError('กรุณาอนุญาตการใช้กล้อง');
+            } else if (err.name === 'NotFoundError') {
+                setError('ไม่พบกล้องในอุปกรณ์นี้');
             } else {
-                // Use the whole text
-                onSuccess(decodedText);
+                setError(err.message || 'ไม่สามารถเปิดกล้องได้');
             }
-        } catch {
-            // Not JSON, use as-is (could be employee code directly)
-            onSuccess(decodedText);
+            setIsStarting(false);
         }
-    };
+    }, [handleScanSuccess]);
 
-    const handleClose = async () => {
+    const handleClose = useCallback(async () => {
         await stopScanner();
         onClose();
-    };
+    }, [onClose, stopScanner]);
 
-    const handleRetry = () => {
-        stopScanner().then(() => {
-            startScanner();
-        });
-    };
+    const handleRetry = useCallback(() => {
+        isStartedRef.current = false;
+        hasProcessedRef.current = false;
+        scannerRef.current = null;
+        const qrReaderElement = document.getElementById('qr-reader');
+        if (qrReaderElement) qrReaderElement.innerHTML = '';
+        startScanner();
+    }, [startScanner]);
 
     useEffect(() => {
-        isMountedRef.current = true;
+        // Start scanner on mount
         startScanner();
 
         return () => {
-            isMountedRef.current = false;
+            // Cleanup on unmount
             stopScanner();
         };
-    }, [startScanner, stopScanner]);
+    }, []); // Empty deps - only run once on mount
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -163,10 +183,17 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
                             </div>
                         )}
 
-                        {!isStarting && !error && (
+                        {!isStarting && !error && !scannedResult && (
                             <div className="flex items-center justify-center gap-2 text-sm text-green-600">
                                 <Camera size={16} />
                                 ส่องกล้องไปที่ QR Code
+                            </div>
+                        )}
+
+                        {scannedResult && (
+                            <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                                <Loader2 size={16} className="animate-spin" />
+                                กำลังค้นหาพนักงาน...
                             </div>
                         )}
 
