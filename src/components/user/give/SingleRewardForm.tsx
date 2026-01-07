@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Input, Modal } from '@/components/common/ui';
 import { Search, QrCode, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { QRScannerModal as QRScannerModalReal } from '@/components/common/QRScannerModal';
 
 // Note: refreshUser is called after successful transaction to update quota display
 
@@ -408,33 +409,35 @@ export const SingleRewardForm: React.FC<SingleRewardFormProps> = ({ onSuccess })
             </Modal>
 
             {/* QR Scanner Modal */}
-            <Modal isOpen={isQRScanOpen} onClose={() => setIsQRScanOpen(false)} title="Scan QR Code">
-                <div className="space-y-4 text-center">
-                    <div className="w-64 h-64 bg-gray-900 rounded-lg mx-auto flex items-center justify-center relative overflow-hidden">
-                        <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-gray-800 to-black"></div>
-                        <div className="w-full h-1 bg-[#DA291C] absolute top-1/2 animate-pulse shadow-[0_0_10px_#DA291C]"></div>
-                        <p className="text-gray-400 text-sm relative z-10">Camera Stream Active...</p>
-                    </div>
-
-                    <div className="text-xs text-gray-400">
-                        Hold QR code within the frame to scan.
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-100">
-                        <p className="text-sm font-bold text-gray-700 mb-2">Manual Entry (Dev)</p>
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Employee Code (e.g. E0002)"
-                                value={qrInput}
-                                onChange={e => setQrInput(e.target.value)}
-                            />
-                            <Button onClick={handleQRScan}>
-                                Find
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </Modal>
+            {isQRScanOpen && (
+                <QRScannerModalReal
+                    onClose={() => setIsQRScanOpen(false)}
+                    onSuccess={async (scannedData) => {
+                        try {
+                            // Try to find user by scanned data
+                            const res = await fetch(`/api/employees?search=${encodeURIComponent(scannedData)}`);
+                            if (res.ok) {
+                                const data = await res.json();
+                                const found = data.find((e: Employee) =>
+                                    e.employeeCode === scannedData || e.id === scannedData
+                                );
+                                if (found) {
+                                    if (found.id === currentUser?.id) {
+                                        setError("Cannot scan your own QR.");
+                                        return;
+                                    }
+                                    handleSelectUser(found);
+                                    setIsQRScanOpen(false);
+                                } else {
+                                    setError("User not found.");
+                                }
+                            }
+                        } catch (e: any) {
+                            setError(e.message);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };
