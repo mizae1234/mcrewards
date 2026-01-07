@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from './ui';
-import { X, Camera, Loader2 } from 'lucide-react';
+import { X, Camera, Loader2, RefreshCw } from 'lucide-react';
 
 interface QRScannerModalProps {
     onClose: () => void;
@@ -11,30 +11,47 @@ interface QRScannerModalProps {
 }
 
 export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSuccess }) => {
-    const [isScanning, setIsScanning] = useState(false);
+    const [isStarting, setIsStarting] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
     const scannerRef = useRef<Html5Qrcode | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const isMountedRef = useRef(true);
 
-    useEffect(() => {
-        return () => {
-            // Cleanup scanner on unmount
-            if (scannerRef.current) {
-                scannerRef.current.stop().catch(() => { });
+    const stopScanner = useCallback(async () => {
+        if (scannerRef.current) {
+            try {
+                await scannerRef.current.stop();
+                scannerRef.current.clear();
+            } catch (err) {
+                console.log('Scanner already stopped');
             }
-        };
+            scannerRef.current = null;
+        }
     }, []);
 
-    const startScanner = async () => {
+    const startScanner = useCallback(async () => {
         setError(null);
-        setIsScanning(true);
+        setIsStarting(true);
+
+        // Wait for DOM element to be ready
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (!isMountedRef.current) return;
+
+        const qrReaderElement = document.getElementById('qr-reader');
+        if (!qrReaderElement) {
+            setError('Scanner container not found');
+            setIsStarting(false);
+            return;
+        }
 
         try {
-            // Check camera permission
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            // Request camera permission first
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
             stream.getTracks().forEach(track => track.stop());
-            setHasPermission(true);
+
+            if (!isMountedRef.current) return;
 
             // Initialize scanner
             const scanner = new Html5Qrcode('qr-reader');
@@ -44,7 +61,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
                 { facingMode: 'environment' },
                 {
                     fps: 10,
-                    qrbox: { width: 250, height: 250 },
+                    qrbox: { width: 200, height: 200 },
+                    aspectRatio: 1.0,
                 },
                 (decodedText) => {
                     // QR code scanned successfully
@@ -54,47 +72,42 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
                     // Ignore scan errors (no QR found in frame)
                 }
             );
+
+            if (isMountedRef.current) {
+                setIsStarting(false);
+            }
         } catch (err: any) {
             console.error('Scanner error:', err);
-            setHasPermission(false);
-            setError(err.message || 'Unable to access camera. Please grant permission.');
-            setIsScanning(false);
+            if (isMountedRef.current) {
+                if (err.name === 'NotAllowedError') {
+                    setError('กรุณาอนุญาตการใช้กล้อง');
+                } else if (err.name === 'NotFoundError') {
+                    setError('ไม่พบกล้องในอุปกรณ์นี้');
+                } else {
+                    setError(err.message || 'ไม่สามารถเปิดกล้องได้');
+                }
+                setIsStarting(false);
+            }
         }
-    };
+    }, []);
 
     const handleScanSuccess = async (decodedText: string) => {
-        // Stop scanner
-        if (scannerRef.current) {
-            await scannerRef.current.stop();
-        }
+        // Stop scanner first
+        await stopScanner();
 
         try {
-            // Parse QR data - expected format: JSON with employee info
+            // Try to parse as JSON
             const data = JSON.parse(decodedText);
-            if (data.employeeId || data.id) {
-                onSuccess(data.employeeId || data.id);
+            if (data.employeeId || data.id || data.employeeCode) {
+                onSuccess(data.employeeId || data.id || data.employeeCode);
             } else {
-                setError('Invalid QR code format');
-                setIsScanning(false);
+                // Use the whole text
+                onSuccess(decodedText);
             }
         } catch {
-            // Maybe it's just an employee ID string
-            if (decodedText.length > 0) {
-                onSuccess(decodedText);
-            } else {
-                setError('Invalid QR code');
-                setIsScanning(false);
-            }
+            // Not JSON, use as-is (could be employee code directly)
+            onSuccess(decodedText);
         }
-    };
-
-    const stopScanner = async () => {
-        if (scannerRef.current) {
-            try {
-                await scannerRef.current.stop();
-            } catch { }
-        }
-        setIsScanning(false);
     };
 
     const handleClose = async () => {
@@ -102,9 +115,25 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
         onClose();
     };
 
+    const handleRetry = () => {
+        stopScanner().then(() => {
+            startScanner();
+        });
+    };
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        startScanner();
+
+        return () => {
+            isMountedRef.current = false;
+            stopScanner();
+        };
+    }, [startScanner, stopScanner]);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b">
                     <h3 className="text-lg font-bold text-gray-900">Scan QR Code</h3>
@@ -117,45 +146,49 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
                 </div>
 
                 {/* Content */}
-                <div className="p-6" ref={containerRef}>
-                    {!isScanning ? (
-                        <div className="text-center space-y-4">
-                            <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
-                                <Camera size={40} className="text-gray-400" />
-                            </div>
-                            <div>
-                                <p className="text-gray-600 mb-4">
-                                    Point your camera at a colleague's QR code to give them points.
-                                </p>
-                                {error && (
-                                    <p className="text-red-500 text-sm mb-4">{error}</p>
-                                )}
-                            </div>
-                            <Button onClick={startScanner} className="w-full">
-                                <Camera size={18} className="mr-2" />
-                                Start Camera
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div
-                                id="qr-reader"
-                                className="w-full rounded-lg overflow-hidden"
-                                style={{ minHeight: '300px' }}
-                            />
+                <div className="p-4">
+                    {/* Scanner Container */}
+                    <div
+                        id="qr-reader"
+                        className="w-full rounded-lg overflow-hidden bg-black"
+                        style={{ minHeight: '280px' }}
+                    />
+
+                    {/* Status */}
+                    <div className="mt-4 text-center">
+                        {isStarting && !error && (
                             <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
                                 <Loader2 size={16} className="animate-spin" />
-                                Scanning...
+                                กำลังเปิดกล้อง...
                             </div>
-                            <Button
-                                onClick={stopScanner}
-                                variant="secondary"
-                                className="w-full"
-                            >
-                                Cancel
-                            </Button>
-                        </div>
-                    )}
+                        )}
+
+                        {!isStarting && !error && (
+                            <div className="flex items-center justify-center gap-2 text-sm text-green-600">
+                                <Camera size={16} />
+                                ส่องกล้องไปที่ QR Code
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="space-y-3">
+                                <p className="text-red-500 text-sm">{error}</p>
+                                <Button onClick={handleRetry} variant="secondary" size="sm">
+                                    <RefreshCw size={14} className="mr-1" />
+                                    ลองใหม่
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Cancel Button */}
+                    <Button
+                        onClick={handleClose}
+                        variant="secondary"
+                        className="w-full mt-4"
+                    >
+                        ยกเลิก
+                    </Button>
                 </div>
             </div>
         </div>
