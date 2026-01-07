@@ -29,6 +29,9 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Install openssl for Prisma
+RUN apk add --no-cache openssl
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
