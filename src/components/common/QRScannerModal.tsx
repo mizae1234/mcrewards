@@ -83,7 +83,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
             return;
         }
 
-        // Clear any existing content
+        // Clear any existing content first
         qrReaderElement.innerHTML = '';
 
         try {
@@ -93,7 +93,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
             });
             stream.getTracks().forEach(track => track.stop());
 
-            // Initialize scanner
+            // Create new scanner instance
             const scanner = new Html5Qrcode('qr-reader', { verbose: false });
             scannerRef.current = scanner;
 
@@ -103,6 +103,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
                     fps: 10,
                     qrbox: { width: 200, height: 200 },
                     aspectRatio: 1.0,
+                    disableFlip: true,
                 },
                 (decodedText) => {
                     handleScanSuccess(decodedText);
@@ -111,6 +112,14 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
                     // Ignore - no QR found in this frame
                 }
             );
+
+            // Force single video - remove duplicate if exists
+            const videos = qrReaderElement.querySelectorAll('video');
+            if (videos.length > 1) {
+                for (let i = 1; i < videos.length; i++) {
+                    videos[i].remove();
+                }
+            }
 
             isStartedRef.current = true;
             setIsStarting(false);
