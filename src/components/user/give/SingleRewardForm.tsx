@@ -418,15 +418,28 @@ export const SingleRewardForm: React.FC<SingleRewardFormProps> = ({ onSuccess })
                         setIsQRScanOpen(false);
 
                         try {
-                            // Try to find user by scanned data
-                            const res = await fetch(`/api/employees?search=${encodeURIComponent(scannedData)}`);
+                            // Parse QR Token format: userId.nonce.expiresAt.signature
+                            let searchId = scannedData;
+
+                            // Check if it's a token format (contains dots and looks like UUID)
+                            if (scannedData.includes('.')) {
+                                const parts = scannedData.split('.');
+                                if (parts.length >= 2) {
+                                    // First part is the userId (UUID)
+                                    searchId = parts[0];
+                                    console.log('Extracted userId from token:', searchId);
+                                }
+                            }
+
+                            // Try to find user by ID
+                            const res = await fetch(`/api/employees?search=${encodeURIComponent(searchId)}`);
                             if (res.ok) {
                                 const data = await res.json();
                                 console.log('Search results:', data);
 
-                                // Try to find exact match
+                                // Try to find exact match by ID
                                 let found = data.find((e: Employee) =>
-                                    e.employeeCode === scannedData || e.id === scannedData
+                                    e.id === searchId || e.employeeCode === searchId
                                 );
 
                                 // If no exact match, try partial match
@@ -441,7 +454,16 @@ export const SingleRewardForm: React.FC<SingleRewardFormProps> = ({ onSuccess })
                                     }
                                     handleSelectUser(found);
                                 } else {
-                                    setError("ไม่พบพนักงาน: " + scannedData);
+                                    // Try fetching by ID directly
+                                    const idRes = await fetch(`/api/employees/${searchId}`);
+                                    if (idRes.ok) {
+                                        const emp = await idRes.json();
+                                        if (emp && emp.id !== currentUser?.id) {
+                                            handleSelectUser(emp);
+                                            return;
+                                        }
+                                    }
+                                    setError("ไม่พบพนักงาน");
                                 }
                             } else {
                                 setError("ไม่สามารถค้นหาพนักงานได้");
