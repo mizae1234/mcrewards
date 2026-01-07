@@ -42,14 +42,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
 
     const isActive = (path: string) => {
-        if (path === '/admin' || path === '/admin/') {
-            return pathname === '/admin' || pathname === '/admin/';
+        if (path === '/admin/rewards') {
+            return pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/rewards');
         }
         return pathname.startsWith(path);
     };
 
     const navItems = [
-        { label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
         { label: 'Rewards Catalog', icon: ShoppingBag, path: '/admin/rewards' },
         { label: 'History', icon: History, path: '/admin/history' },
         { label: 'Manage', icon: Settings, path: '/admin/manage' },
