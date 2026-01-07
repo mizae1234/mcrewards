@@ -12,7 +12,8 @@ import {
     LogOut,
     Menu,
     X,
-    PieChart,
+    Activity,
+    FileText,
 } from 'lucide-react';
 import { UserRole } from '@/types';
 
@@ -52,7 +53,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { label: 'Rewards Catalog', icon: ShoppingBag, path: '/admin/rewards' },
         { label: 'History', icon: History, path: '/admin/history' },
         { label: 'Manage', icon: Settings, path: '/admin/manage' },
-        { label: 'Reports', icon: PieChart, path: '/admin/reports' },
+        { label: 'Monitor', icon: Activity, path: '/admin/monitor' },
+        { label: 'Reports', icon: FileText, path: '/admin/reports' },
     ];
 
     if (isLoading || !user) {
@@ -110,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <nav className="flex-1 py-4">
                     {navItems.map((item) => {
                         const active = item.path === '/admin'
-                            ? isActive('/admin') && !isActive('/admin/rewards') && !isActive('/admin/history') && !isActive('/admin/manage') && !isActive('/admin/reports')
+                            ? isActive('/admin') && !isActive('/admin/rewards') && !isActive('/admin/history') && !isActive('/admin/manage') && !isActive('/admin/monitor') && !isActive('/admin/reports')
                             : isActive(item.path);
                         return (
                             <Link
