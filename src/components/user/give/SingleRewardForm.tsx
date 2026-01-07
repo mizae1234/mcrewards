@@ -413,27 +413,42 @@ export const SingleRewardForm: React.FC<SingleRewardFormProps> = ({ onSuccess })
                 <QRScannerModalReal
                     onClose={() => setIsQRScanOpen(false)}
                     onSuccess={async (scannedData) => {
+                        console.log('QR Scanned Data:', scannedData);
+                        // Close modal first
+                        setIsQRScanOpen(false);
+
                         try {
                             // Try to find user by scanned data
                             const res = await fetch(`/api/employees?search=${encodeURIComponent(scannedData)}`);
                             if (res.ok) {
                                 const data = await res.json();
-                                const found = data.find((e: Employee) =>
+                                console.log('Search results:', data);
+
+                                // Try to find exact match
+                                let found = data.find((e: Employee) =>
                                     e.employeeCode === scannedData || e.id === scannedData
                                 );
+
+                                // If no exact match, try partial match
+                                if (!found && data.length > 0) {
+                                    found = data[0];
+                                }
+
                                 if (found) {
                                     if (found.id === currentUser?.id) {
-                                        setError("Cannot scan your own QR.");
+                                        setError("ไม่สามารถ scan QR ของตัวเองได้");
                                         return;
                                     }
                                     handleSelectUser(found);
-                                    setIsQRScanOpen(false);
                                 } else {
-                                    setError("User not found.");
+                                    setError("ไม่พบพนักงาน: " + scannedData);
                                 }
+                            } else {
+                                setError("ไม่สามารถค้นหาพนักงานได้");
                             }
                         } catch (e: any) {
-                            setError(e.message);
+                            console.error('Search error:', e);
+                            setError(e.message || "เกิดข้อผิดพลาด");
                         }
                     }}
                 />
