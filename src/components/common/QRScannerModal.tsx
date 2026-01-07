@@ -19,6 +19,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
     const hasProcessedRef = useRef(false);
 
     const stopScanner = useCallback(async () => {
+        // Stop the scanner
         if (scannerRef.current && isStartedRef.current) {
             try {
                 await scannerRef.current.stop();
@@ -33,6 +34,22 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ onClose, onSucce
             isStartedRef.current = false;
         }
         scannerRef.current = null;
+
+        // Also stop all video tracks to fully close camera
+        try {
+            const videos = document.querySelectorAll('#qr-reader video');
+            videos.forEach((video) => {
+                const mediaStream = (video as HTMLVideoElement).srcObject as MediaStream;
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                }
+                (video as HTMLVideoElement).srcObject = null;
+            });
+        } catch (err) {
+            console.log('Video track stop error (ignorable):', err);
+        }
     }, []);
 
     const handleScanSuccess = useCallback(async (decodedText: string) => {
